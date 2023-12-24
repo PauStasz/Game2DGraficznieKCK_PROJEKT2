@@ -25,16 +25,20 @@ namespace Game
         private MainMenu()
         { 
             InitializeComponent();
+            db = new Database("DatabasePlayers.json");
         }
 
         private void menu_load(object sender, EventArgs e)
         { 
-            db = new Database("DatabasePlayers.json");
+            
 
             List<Player> getPlayers = db.DeserializeFromFile();
 
-            if(getPlayers == null || getPlayers.Count <= 0)
-                players = new List<Player>() { new Player ("Anna", Properties.Resources.Nairan___Battlecruiser___Base), new Player("Hania", Properties.Resources.Nairan___Battlecruiser___Base) };
+            if (getPlayers == null || getPlayers.Count <= 0)
+            {
+                
+                players = new List<Player>() { new Player("Anna", Properties.Resources.Nairan___Battlecruiser___Base), new Player("Hania", Properties.Resources.Nairan___Battlecruiser___Base) };
+            }
             else
                 players = getPlayers;
 

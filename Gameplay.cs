@@ -98,6 +98,7 @@ namespace Game
             pointsLabel.Text = "POINTS " + _player.CurrentPoints.ToString();
             playerBox.Visible = true;
             playerBox.Image = new Bitmap(_player.Icon, new Size(120, 130));
+            playerBox.BackColor = Color.Transparent; 
             playerBox.Location = new Point(playerBox.Location.X, 320);
 
             //set enemy
