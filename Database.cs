@@ -22,23 +22,26 @@ namespace Game
 
         public List<Player> DeserializeFromFile()
         {
-            string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
-            if (File.Exists(fullPath))
-            {
+            
                 try
-                {
-                    var serializedPlayers = File.ReadAllText(fullPath);
-                    List<Player> players = JsonSerializer.Deserialize<List<Player>>(serializedPlayers);
-                    return players;
+                {   string fullPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, name);
+                    if (File.Exists(fullPath))
+                    {
+
+                        var serializedPlayers = File.ReadAllText(fullPath);
+                        List<Player> players = JsonSerializer.Deserialize<List<Player>>(serializedPlayers);
+                        return players;
+                    }
+                    else
+                        return null;
 
                 }
                 catch (Exception e)
                 {
                     SaveNoDatebaseInformation(e);
                 }
-            }
 
-            return null;
+               return null;      
         }
 
         private void SaveNoDatebaseInformation(Exception e)

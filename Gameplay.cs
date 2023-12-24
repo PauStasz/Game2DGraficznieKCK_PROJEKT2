@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Media;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -20,6 +21,8 @@ namespace Game
         private int amountHealth = 3;
         private Random random;
         private KeyEventArgs keyPlayer = null;
+        private readonly SoundPlayer musicLoading = new SoundPlayer(Properties.Resources.in_the_wreckage);
+        private readonly SoundPlayer musicGameplay = new SoundPlayer(Properties.Resources.battle);
         public Gameplay()
         {
             InitializeComponent();
@@ -37,6 +40,12 @@ namespace Game
         {
             //get mode game
             MainMenu menu = MainMenu.GetInstance;
+
+            menu.musicPlayer.Stop();
+            menu.musicPlayer.Dispose();
+            musicLoading.Load();
+            musicLoading.PlayLooping();
+
             switch (menu.ModeGame)
             {
                 case 0:
@@ -79,6 +88,11 @@ namespace Game
             this.Controls.Remove(startGameTimer);
             startGameTimer.Dispose();
 
+            musicLoading.Stop();
+            musicLoading.Dispose();
+            musicGameplay.Load();
+            musicGameplay.PlayLooping();
+
             //set player
             levelLabel.Text = "LEVEL " + _player.Level.ToString();
             pointsLabel.Text = "POINTS " + _player.CurrentPoints.ToString();
@@ -97,7 +111,6 @@ namespace Game
             //threads and timer
             timer.Start();
             enemyThread = new Thread(controlEnemyMovementAsync);
-            //playerThread.Start();
             enemyThread.Start();
 
             //end threads
@@ -120,6 +133,8 @@ namespace Game
             if (gameTime <= 0 || amountHealth <= 0)
             {
 
+                playerThread.Join();
+
                 this.Controls.Remove(enemyBox);
                 enemyBox.Dispose();
                 this.Controls.Remove(playerBox);
@@ -141,6 +156,9 @@ namespace Game
                 for(int i = 0; i < menu.players.Count; i++)
                     if (menu.players[i].Nick == _player.Nick)
                         menu.players[i] = _player;
+
+                musicGameplay.Stop();
+                musicGameplay.Dispose();
 
                 menu.Show();
                 this.Hide();
@@ -183,7 +201,10 @@ namespace Game
                                 if (i == 4)
                                     shootBox.Image = Properties.Resources.Fx_04_2;
                                 else if (i == 30)
+                                {
                                     shootBox.Image = Properties.Resources.Fx_04_3;
+                                    shootBox.Image.RotateFlip(RotateFlipType.Rotate180FlipX);
+                                }
 
 
                                 shootBox.Location = new Point(shootBox.Location.X, shootBox.Location.Y + 5);
@@ -214,24 +235,26 @@ namespace Game
             }
         }
 
-        private async void control_KeyDown(object sender, KeyEventArgs e)
+        private void control_KeyDown(object sender, KeyEventArgs e)
         {
-            await movePlayerAsync(e); 
+            keyPlayer = e;
+            playerThread = new Thread(movePlayer);
+            playerThread.Start();
         }
 
-        private async Task movePlayerAsync(KeyEventArgs key)
+        private void movePlayer()
         {
- 
-                switch (key.KeyCode)
+            if (keyPlayer != null)
+                switch (keyPlayer.KeyCode)
                 {
                     case Keys.Right:
-                        playerBox_move(5, 320);
+                        playerBox_move(10, 320);
                         break;
                     case Keys.Left:
-                        playerBox_move(-5, 320);
+                        playerBox_move(-10, 320);
                         break;
                     case Keys.Space:
-                        await shootBox_startAsync();
+                        shootBox_start();
                         break;
                     default:
                         break;
@@ -259,52 +282,59 @@ namespace Game
                 positionY = playerBox.Location.Y;
             }
 
-            playerBox.Location = new Point(positionX, positionY);
+            BeginInvoke((Action)delegate
+            {
+                playerBox.Location = new Point(positionX, positionY);
+            });
+
+            
         }
 
-        private async Task shootBox_startAsync()
+        private void shootBox_start()
         {
-            PictureBox shootBox = new PictureBox();
-            this.Controls.Add(shootBox);
-            int x = playerBox.Location.X;
-            int y = playerBox.Location.Y;
-
-            shootBox.BackColor = Color.Transparent;
-            shootBox.Image = Properties.Resources.Fx_04_1;
-            shootBox.Location = new Point(x + 28, y - 10);
-
-
-            while (shootBox.Location.Y > 88)
+            BeginInvoke((Action)async delegate
             {
-                await Task.Delay(1);
+                PictureBox shootBox = new PictureBox();
+                this.Controls.Add(shootBox);
+                int x = playerBox.Location.X;
+                int y = playerBox.Location.Y;
 
-                shootBox.Location = new Point(shootBox.Location.X, shootBox.Location.Y - 5);
+                shootBox.BackColor = Color.Transparent;
+                shootBox.Image = Properties.Resources.Fx_04_1;
+                shootBox.Location = new Point(x + 28, y - 10);
 
-                if (shootBox.Location.Y == 260)
-                    shootBox.Image = Properties.Resources.Fx_04_2;
-                if (shootBox.Location.Y == 140)
-                    shootBox.Image = Properties.Resources.Fx_04_3;
-            }
 
-            int enemyLocation = enemyBox.Location.X;
-            int shotLocation = shootBox.Location.X;
-            if (shotLocation >= enemyLocation && shotLocation <= (enemyLocation + enemyBox.Width / 2))
-            {
-                _player.CurrentPoints += points;
-                pointsLabel.Text = "POINTS " + _player.CurrentPoints.ToString();
-
-                if (_player.CurrentPoints % 50 == 0 && _player.CurrentPoints != 0)
+                while (shootBox.Location.Y > 88)
                 {
-                    _player.Level++;
-                    levelLabel.Text = "LEVEL " + _player.Level.ToString();
+                    await Task.Delay(1);
+
+                    shootBox.Location = new Point(shootBox.Location.X, shootBox.Location.Y - 5);
+
+                    if (shootBox.Location.Y == 260)
+                        shootBox.Image = Properties.Resources.Fx_04_2;
+                    if (shootBox.Location.Y == 140)
+                        shootBox.Image = Properties.Resources.Fx_04_3;
                 }
 
-                ExplosionAnimation(enemyLocation);
-            }
+                int enemyLocation = enemyBox.Location.X;
+                int shotLocation = shootBox.Location.X;
+                if (shotLocation >= enemyLocation && shotLocation <= (enemyLocation + enemyBox.Width / 2))
+                {
+                    _player.CurrentPoints += points;
+                    pointsLabel.Text = "POINTS " + _player.CurrentPoints.ToString();
 
-            this.Controls.Remove(shootBox);
-            shootBox.Dispose();
-            
+                    if (_player.CurrentPoints % 50 == 0 && _player.CurrentPoints != 0)
+                    {
+                        _player.Level++;
+                        levelLabel.Text = "LEVEL " + _player.Level.ToString();
+                    }
+
+                    ExplosionAnimation(enemyLocation);
+                }
+
+                this.Controls.Remove(shootBox);
+                shootBox.Dispose();
+            });
         }
 
         private async void ExplosionAnimation(int enemyLocation)

@@ -5,6 +5,8 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Media;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -15,6 +17,7 @@ namespace Game
     {
         private static MainMenu instance = null;
         private Database db;
+        public readonly SoundPlayer musicPlayer = new SoundPlayer(Properties.Resources.menu);
 
         public List<Player> players { get; set; } 
         public int ModeGame { get; set; } = 1;
@@ -34,6 +37,9 @@ namespace Game
                 players = new List<Player>() { new Player ("Anna", Properties.Resources.Nairan___Battlecruiser___Base), new Player("Hania", Properties.Resources.Nairan___Battlecruiser___Base) };
             else
                 players = getPlayers;
+
+            musicPlayer.Load();
+            musicPlayer.PlayLooping();
         }
 
         private void newGameButton_Click(object sender, EventArgs e)
@@ -41,10 +47,13 @@ namespace Game
             CreatePlayer createPlayer = new CreatePlayer();
             createPlayer.Show();
             this.Hide();
+            
         }
 
         private void quitButton_Click(object sender, EventArgs e)
         {
+            musicPlayer.Stop();
+            musicPlayer.Dispose();
             db.SerializeToFile(players);
             Application.Exit();
         }
